@@ -2,7 +2,7 @@ package bwlog
 
 import (
 	"fmt"
-	"go-util/env"
+	"github.com/biwankaifa/go-util/env"
 	"io"
 	"os"
 	"path/filepath"

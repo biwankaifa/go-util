@@ -1,0 +1,9 @@
+/vendor
+/.idea
+*/.idea
+/.vscode
+*.log
+.env
+/config/*.toml
+/script
+test.go

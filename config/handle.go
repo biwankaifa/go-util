@@ -3,9 +3,9 @@ package config
 import (
 	"context"
 	"fmt"
+	"github.com/biwankaifa/go-util/env"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
-	"go-util/env"
 	"strconv"
 	"strings"
 	"time"

@@ -3,11 +3,11 @@ package validator
 import (
 	"context"
 	"errors"
+	"github.com/biwankaifa/go-utilresponse"
 	enLanguage "github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	enTranslations "github.com/go-playground/validator/v10/translations/en"
-	"go-util/response"
 	"reflect"
 )
 
