@@ -1,4 +1,4 @@
-module go-util
+module github.com/biwankaifa/go-util
 
 go 1.17
 

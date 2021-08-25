@@ -2,7 +2,7 @@ package db
 
 import (
 	"fmt"
-	"github.com/biwankaifa/go-utilconfig"
+	"github.com/biwankaifa/go-util/config"
 	"gorm.io/gorm/logger"
 	"log"
 	"sync"

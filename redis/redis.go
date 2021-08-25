@@ -3,7 +3,7 @@ package redis
 import (
 	"context"
 	"fmt"
-	"github.com/biwankaifa/go-utilconfig"
+	"github.com/biwankaifa/go-util/config"
 	"github.com/go-redis/redis/v8"
 	"github.com/golang-module/carbon"
 	"runtime"

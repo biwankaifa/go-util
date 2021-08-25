@@ -3,7 +3,7 @@ package validator
 import (
 	"context"
 	"errors"
-	"github.com/biwankaifa/go-utilresponse"
+	"github.com/biwankaifa/go-util/response"
 	enLanguage "github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
