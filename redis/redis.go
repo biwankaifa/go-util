@@ -3,7 +3,6 @@ package redis
 import (
 	"context"
 	"fmt"
-	"github.com/biwankaifa/go-util/config"
 	"github.com/go-redis/redis/v8"
 	"github.com/golang-module/carbon"
 	"runtime"
@@ -20,20 +19,27 @@ const KeepTTL = redis.KeepTTL
 
 const Nil = redis.Nil
 
+type ConfigOfRedis struct {
+	Database int
+	Address  string
+	Password string
+}
+
 // client Redis单例模式
 var client map[int]*redis.Client
 var mu sync.Mutex
+var cfg *ConfigOfRedis
 
-func init() {
+func InitRedis(c *ConfigOfRedis) {
 	client = make(map[int]*redis.Client)
+	cfg = c
 }
 
 //Get 只执行一次
 func Get(i ...int) *redis.Client {
-	c := config.Get().Redis
 	var db int
 	if len(i) <= 0 {
-		db = c.Db
+		db = cfg.Database
 	} else {
 		db = i[0]
 	}
@@ -50,9 +56,9 @@ func Get(i ...int) *redis.Client {
 		defer mu.Unlock()
 		if client[db] == nil {
 			client[db] = redis.NewClient(&redis.Options{
-				Addr:         c.Addr,
-				Password:     c.Pass, // no password set
-				DB:           db,     // use default DB
+				Addr:         cfg.Address,
+				Password:     cfg.Password, // no password set
+				DB:           db,           // use default DB
 				MaxRetries:   3,
 				PoolSize:     10,
 				MinIdleConns: 5,

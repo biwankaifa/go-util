@@ -17,7 +17,7 @@ type ConfigOfMongo struct {
 	DataBase string
 }
 
-func InitMongo(cfg ConfigOfMongo) error {
+func InitMongo(cfg *ConfigOfMongo) error {
 	if databaseOfMongo != nil {
 		return nil
 	}
