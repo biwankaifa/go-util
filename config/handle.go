@@ -1,161 +1,91 @@
 package config
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/biwankaifa/go-util/env"
 	"github.com/fsnotify/fsnotify"
-	"github.com/spf13/viper"
-	"strconv"
-	"strings"
+	"log"
 	"time"
+
+	consulApi "github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/api/watch"
+	"github.com/spf13/viper"
+	_ "github.com/spf13/viper/remote"
 )
 
-var config = new(Config)
-
 type Config struct {
-	App struct {
-		Domain       string `toml:"domain"`
-		Port         int    `toml:"port"`
-		ReadTimeout  int    `toml:"readTimeout"`
-		WriteTimeout int    `toml:"writeTimeout"`
-	}
-
-	Log struct {
-		FilePath string `toml:"filePath"`
-		FileName string `toml:"fileName"`
-	}
-
-	MySQL struct {
-		Write struct {
-			Addr string `toml:"addr"`
-			User string `toml:"user"`
-			Pass string `toml:"pass"`
-			Name string `toml:"name"`
-		} `toml:"read"`
-		Base struct {
-			MaxOpenConn     int           `toml:"maxOpenConn"`
-			MaxIdleConn     int           `toml:"maxIdleConn"`
-			ConnMaxLifeTime time.Duration `toml:"connMaxLifeTime"`
-		} `toml:"base"`
-	} `toml:"mysql"`
-
-	Redis struct {
-		Addr         string `toml:"addr"`
-		Pass         string `toml:"pass"`
-		Db           int    `toml:"db"`
-		MaxRetries   int    `toml:"maxRetries"`
-		PoolSize     int    `toml:"poolSize"`
-		MinIdleConns int    `toml:"minIdleConns"`
-	} `toml:"redis"`
-
-	Rongcloud struct {
-		AppKey    string `toml:"appKey"`
-		AppSecret string `toml:"appSecret"`
-	} `toml:"rongcloud"`
-
-	Shanyan struct {
-		Ios struct {
-			AppID  string `toml:"appId"`
-			AppKey string `toml:"appKey"`
-		} `toml:"appId"`
-		Android struct {
-			AppID  string `toml:"appId"`
-			AppKey string `toml:"appKey"`
-		} `toml:"android"`
-	} `toml:"shanyan"`
-
-	QQ struct {
-		AppID  string `toml:"appId"`
-		AppKey string `toml:"appKey"`
-	} `toml:"qq"`
-
-	Wechat struct {
-		AppID     string `toml:"appId"`
-		AppSecret string `toml:"appSecret"`
-	} `toml:"wechat"`
-
-	Weibo struct {
-		AppKey      string `toml:"appKey"`
-		AppSecret   string `toml:"appSecret"`
-		RedirectUri string `toml:"redirectUri"`
-	} `toml:"weibo"`
-
-	SMS struct {
-		RongLianYun struct {
-			AccountToken string `toml:"accountToken"`
-			AccountSid   string `toml:"accountSid"`
-			Domestic     struct {
-				AppId      string `toml:"appId"`
-				TemplateId int    `toml:"templateId"`
-			} `toml:"domestic"`
-			International struct {
-				AppId      string `toml:"appId"`
-				TemplateId int    `toml:"templateId"`
-			} `toml:"international"`
-		} `toml:"rongLianYun"`
-	} `toml:"sms"`
-
-	RabbitMQ struct {
-		User string `toml:"user"`
-		Pass string `toml:"pass"`
-		Addr string `toml:"addr"`
-	} `toml:"rabbitMQ"`
-
-	Aliyun struct {
-		Video struct {
-			AccessKeyId     string `toml:"accessKeyId"`
-			AccessKeySecret string `toml:"accessKeySecret"`
-			Endpoint        string `toml:"endpoint"`
-			TemplateGroupId string `toml:"templateGroupId"`
-		} `toml:"video"`
-		File struct {
-			AccessKeyId     string `toml:"accessKeyId"`
-			AccessKeySecret string `toml:"accessKeySecret"`
-			Endpoint        string `toml:"endpoint"`
-			RegionID        string `toml:"regionID"`
-			BucketName      string `toml:"bucketName"`
-		} `toml:"file"`
-		Oss struct {
-			AccessKeyId     string `toml:"accessKeyId"`
-			AccessKeySecret string `toml:"accessKeySecret"`
-			Endpoint        string `toml:"endpoint"`
-			RegionID        string `toml:"regionID"`
-			BucketName      string `toml:"bucketName"`
-		} `toml:"oss"`
-	} `toml:"aliyun"`
-
-	Version struct {
-		AndroidMin uint32 `toml:"androidMin"`
-		IosMin     uint32 `toml:"iosMin"`
-	} `toml:"version"`
-
-	MongoDb struct {
-		Host     string `toml:"host"`
-		Port     int    `toml:"port"`
-		Name     string `toml:"name"`
-		Pass     string `toml:"pass"`
-		DataBase string `toml:"database"`
-		String   string `toml:"string"`
-	} `toml:"mongoDB"`
-
-	Payment struct {
-		Alipay struct {
-			AppID           string `toml:"appID"`
-			AppPrivateKey   string `toml:"appPrivateKey"`
-			AlipayPublicKey string `toml:"alipayPublicKey"`
-			NotifyURL       string `toml:"notifyURL"`
-			ReturnURL       string `toml:"returnURL"`
-		} `toml:"payment"`
-	} `toml:"alipay"`
+	// Source config获取来源方式, file 本地文件方式获取, consul 从consul的kv内获取
+	Source string
+	// Address consul下地址获取
+	Address string
+	// Path kv路径信息
+	Path string
+	// ConfigType kv数据格式
+	ConfigType string
 }
 
-func init() {
-	viper.SetConfigName(env.Active().Value() + "_configs")
-	viper.SetConfigType("toml")
-	viper.AddConfigPath("./config")
+var defaultConfig *viper.Viper
 
-	if err := viper.ReadInConfig(); err != nil {
+func initConsulConfig(address, path, configType string) *viper.Viper {
+	//consulAddress = "http://127.0.0.1:8500"
+	//consulPath = "config"
+
+	defaultConfig = viper.New()
+	defaultConfig.SetConfigType(configType)
+
+	consulClient, err := consulApi.NewClient(&consulApi.Config{Address: address})
+	if err != nil {
+		log.Fatalln("consul连接失败:", err)
+	}
+
+	kv, _, err := consulClient.KV().Get(path, nil)
+	if err != nil {
+		log.Fatalln("consul获取配置失败:", err)
+	}
+
+	err = defaultConfig.ReadConfig(bytes.NewBuffer(kv.Value))
+	if err != nil {
+		log.Fatalln("Viper解析配置失败:", err)
+	}
+
+	go func() {
+		time.Sleep(time.Second * 10)
+		params := make(map[string]interface{})
+		params["type"] = "key"
+		params["key"] = path
+
+		w, err := watch.Parse(params)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		w.Handler = func(u uint64, i interface{}) {
+			kv := i.(*consulApi.KVPair)
+			hotconfig := viper.New()
+			hotconfig.SetConfigType(configType)
+			err = hotconfig.ReadConfig(bytes.NewBuffer(kv.Value))
+			if err != nil {
+				log.Fatalln("Viper解析配置失败:", err)
+			}
+			defaultConfig = hotconfig
+		}
+		err = w.Run(address)
+		if err != nil {
+			log.Fatalln("监听consul错误:", err)
+		}
+	}()
+
+	return defaultConfig
+}
+
+func initFileConfig(active, path, configType string) *viper.Viper {
+	defaultConfig = viper.New()
+	defaultConfig.SetConfigName(active + "_configs")
+	defaultConfig.SetConfigType(configType)
+	defaultConfig.AddConfigPath("./" + path)
+
+	if err := defaultConfig.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			panic("config.toml not found")
 		} else {
@@ -163,62 +93,54 @@ func init() {
 		}
 	}
 
-	if err := viper.Unmarshal(config); err != nil {
-		panic(err)
-	}
-
 	//创建一个信道等待关闭
 	go func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		//设置监听回调函数
-		viper.OnConfigChange(func(e fsnotify.Event) {
+		defaultConfig.OnConfigChange(func(e fsnotify.Event) {
 			fmt.Printf("config is change :%s \n", e.String())
-			if err := viper.Unmarshal(config); err != nil {
-				panic(err)
-			}
+			//if err := viper.Unmarshal(config); err != nil {
+			//	panic(err)
+			//}
 			cancel()
 		})
 		//开始监听
-		viper.WatchConfig()
+		defaultConfig.WatchConfig()
 		//信道不会主动关闭，可以主动调用cancel关闭
 		<-ctx.Done()
 	}()
 
+	return defaultConfig
+
 }
 
-func Get() Config {
-	return *config
-}
+func (c Config) GetConfig() *viper.Viper {
 
-func ProjectName() string {
-	return "iFensi"
-}
-
-func RateLimit() int {
-	return 10
-}
-
-// ProjectPort 运行端口号获取
-func ProjectPort() (string string) {
-	if config.App.Port != 0 {
-		string = ":" + strconv.Itoa(config.App.Port)
-	} else {
-		string = ":80"
+	if c.Source == "" {
+		c.Source = "consul"
 	}
-	return
-}
 
-func ProjectLogFile() string {
-	return fmt.Sprintf("./logs/%s-access.log", ProjectName())
-}
-
-// AppVersionMin App允许运行的最低版本号获取
-func AppVersionMin(deviceOs string) uint32 {
-	switch strings.ToLower(deviceOs) {
-	case "android":
-		return config.Version.AndroidMin
-	case "ios":
-		return config.Version.IosMin
+	if c.ConfigType == "" {
+		c.ConfigType = "json"
 	}
-	return 0
+
+	if c.Path == "" {
+		c.Path = "config"
+	}
+
+	if c.Address == "" {
+		c.Address = "127.0.0.1:8500"
+	}
+
+	if defaultConfig == nil {
+		switch c.ConfigType {
+		case "file":
+			defaultConfig = initConsulConfig(c.Address, c.Path, c.ConfigType)
+			break
+		case "consul":
+			defaultConfig = initFileConfig(env.Active().Value(), c.Path, c.ConfigType)
+			break
+		}
+	}
+	return defaultConfig
 }
