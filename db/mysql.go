@@ -2,7 +2,6 @@ package db
 
 import (
 	"fmt"
-	"github.com/biwankaifa/go-util/config"
 	"gorm.io/gorm/logger"
 	"log"
 	"sync"
@@ -14,7 +13,16 @@ import (
 	"gorm.io/gorm/schema"
 )
 
-type MysqlConnectPool struct {
+type MysqlConnectPool struct{}
+
+type MysqlConfig struct {
+	User            string
+	Pass            string
+	Addr            string
+	Name            string
+	MaxOpenConn     int
+	MaxIdleConn     int
+	ConnMaxLifeTime int
 }
 
 var instance *MysqlConnectPool
@@ -31,11 +39,9 @@ func Get() *MysqlConnectPool {
 }
 
 //InitDataPool 初始化数据库连接(可在mail()适当位置调用)
-func (m *MysqlConnectPool) InitDataPool() bool {
+func (m *MysqlConnectPool) InitDataPool(c *MysqlConfig) bool {
 
-	cfg := config.Get().MySQL
-
-	db, errDb = dbConnect(cfg.Write.User, cfg.Write.Pass, cfg.Write.Addr, cfg.Write.Name)
+	db, errDb = dbConnect(c)
 	if errDb != nil {
 		log.Fatal(errDb)
 		return false
@@ -46,22 +52,22 @@ func (m *MysqlConnectPool) InitDataPool() bool {
 }
 
 // Db 对外获取数据库连接对象db
-func (m *MysqlConnectPool) Db() (db_con *gorm.DB) {
+func (m *MysqlConnectPool) Db() *gorm.DB {
 	return db
 }
 
 // Error 对外获取数据库连接对象db
-func (m *MysqlConnectPool) Error() (error error) {
+func (m *MysqlConnectPool) Error() error {
 	return errDb
 }
 
 // dbConnect
-func dbConnect(user, pass, addr, dbName string) (*gorm.DB, error) {
+func dbConnect(c *MysqlConfig) (*gorm.DB, error) {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=%t&loc=%s",
-		user,
-		pass,
-		addr,
-		dbName,
+		c.User,
+		c.Pass,
+		c.Addr,
+		c.Name,
 		true,
 		"Local")
 
@@ -73,12 +79,10 @@ func dbConnect(user, pass, addr, dbName string) (*gorm.DB, error) {
 	})
 
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("[db connection failed] Database name: %s", dbName))
+		return nil, errors.Wrap(err, fmt.Sprintf("[db connection failed] Database name: %s", c.Name))
 	}
 
 	db.Set("gorm:table_options", "CHARSET=utf8mb4")
-
-	cfg := config.Get().MySQL.Base
 
 	sqlDB, err := db.DB()
 	if err != nil {
@@ -86,13 +90,13 @@ func dbConnect(user, pass, addr, dbName string) (*gorm.DB, error) {
 	}
 
 	// 设置连接池 用于设置最大打开的连接数，默认值为0表示不限制.设置最大的连接数，可以避免并发太高导致连接mysql出现too many connections的错误。
-	sqlDB.SetMaxOpenConns(cfg.MaxOpenConn)
+	sqlDB.SetMaxOpenConns(c.MaxOpenConn)
 
 	// 设置最大连接数 用于设置闲置的连接数.设置闲置的连接数则当开启的一个连接使用完成后可以放在池里等候下一次使用。
-	sqlDB.SetMaxIdleConns(cfg.MaxIdleConn)
+	sqlDB.SetMaxIdleConns(c.MaxIdleConn)
 
 	// 设置最大连接超时
-	sqlDB.SetConnMaxLifetime(time.Minute * cfg.ConnMaxLifeTime)
+	sqlDB.SetConnMaxLifetime(time.Minute * time.Duration(c.ConnMaxLifeTime))
 
 	// 使用插件
 	//db.Use(&TracePlugin{})

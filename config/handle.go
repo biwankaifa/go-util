@@ -115,23 +115,6 @@ func initFileConfig(active, path, configType string) *viper.Viper {
 }
 
 func (c Config) GetConfig() *viper.Viper {
-
-	if c.Source == "" {
-		c.Source = "consul"
-	}
-
-	if c.ConfigType == "" {
-		c.ConfigType = "json"
-	}
-
-	if c.Path == "" {
-		c.Path = "config"
-	}
-
-	if c.Address == "" {
-		c.Address = "127.0.0.1:8500"
-	}
-
 	if defaultConfig == nil {
 		switch c.ConfigType {
 		case "file":
