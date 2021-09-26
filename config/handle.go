@@ -134,7 +134,7 @@ func initFileConfig(path, configType string) *viper.Viper {
 
 }
 
-func (c Config) GetConfig() *viper.Viper {
+func GetConfig(c Config) *viper.Viper {
 	if DefaultConfig == nil {
 		switch strings.ToLower(c.source) {
 		case "file":
