@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/biwankaifa/go-util/env"
 	"github.com/fsnotify/fsnotify"
 	"log"
 	"time"
@@ -79,9 +78,9 @@ func initConsulConfig(address, path, configType string) *viper.Viper {
 	return defaultConfig
 }
 
-func initFileConfig(active, path, configType string) *viper.Viper {
+func initFileConfig(path, configType string) *viper.Viper {
 	defaultConfig = viper.New()
-	defaultConfig.SetConfigName(active + "_configs")
+	defaultConfig.SetConfigName("configs")
 	defaultConfig.SetConfigType(configType)
 	defaultConfig.AddConfigPath("./" + path)
 
@@ -121,7 +120,7 @@ func (c Config) GetConfig() *viper.Viper {
 			defaultConfig = initConsulConfig(c.Address, c.Path, c.ConfigType)
 			break
 		case "consul":
-			defaultConfig = initFileConfig(env.Active().Value(), c.Path, c.ConfigType)
+			defaultConfig = initFileConfig(c.Path, c.ConfigType)
 			break
 		}
 	}

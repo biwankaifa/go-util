@@ -50,7 +50,7 @@ func (e *environment) IsPro() bool {
 }
 
 func init() {
-	env := flag.String("env", "", "请输入运行环境:\n dev:开发环境\n fat:测试环境\n uat:预上线环境\n pro:正式环境\n")
+	env := flag.String("env", "", "请输入运行环境: dev:开发环境, fat:测试环境, uat:预上线环境, pro:正式环境")
 	flag.Parse()
 
 	switch strings.ToLower(strings.TrimSpace(*env)) {

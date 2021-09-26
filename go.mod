@@ -11,7 +11,7 @@ require (
 	github.com/go-playground/validator/v10 v10.9.0
 	github.com/go-redis/redis/v8 v8.11.3
 	github.com/golang-module/carbon v1.5.3
-	github.com/hashicorp/consul/api v1.10.0
+	github.com/hashicorp/consul/api v1.10.1
 	github.com/ipplus360/awdb-golang v0.0.0-20201221090440-f021400d757e
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/viper v1.8.1
