@@ -15,24 +15,24 @@ import (
 )
 
 type Config struct {
-	// Source config获取来源方式, file 本地文件方式获取, consul 从consul的kv内获取
-	Source string
-	// Address consul下地址获取
-	Address string
-	// Path kv路径信息
-	Path string
-	// ConfigType kv数据格式
-	ConfigType string
+	// source config获取来源方式, file 本地文件方式获取, consul 从consul的kv内获取
+	source string
+	// address consul下地址获取
+	address string
+	// path kv路径信息
+	path string
+	// configType kv数据格式
+	configType string
 }
 
-var defaultConfig *viper.Viper
+var DefaultConfig *viper.Viper
 
 func initConsulConfig(address, path, configType string) *viper.Viper {
 	//consulAddress = "http://127.0.0.1:8500"
 	//consulPath = "config"
 
-	defaultConfig = viper.New()
-	defaultConfig.SetConfigType(configType)
+	DefaultConfig = viper.New()
+	DefaultConfig.SetConfigType(configType)
 
 	consulClient, err := consulApi.NewClient(&consulApi.Config{Address: address})
 	if err != nil {
@@ -44,7 +44,7 @@ func initConsulConfig(address, path, configType string) *viper.Viper {
 		log.Fatalln("consul获取配置失败:", err)
 	}
 
-	err = defaultConfig.ReadConfig(bytes.NewBuffer(kv.Value))
+	err = DefaultConfig.ReadConfig(bytes.NewBuffer(kv.Value))
 	if err != nil {
 		log.Fatalln("Viper解析配置失败:", err)
 	}
@@ -67,7 +67,7 @@ func initConsulConfig(address, path, configType string) *viper.Viper {
 			if err != nil {
 				log.Fatalln("Viper解析配置失败:", err)
 			}
-			defaultConfig = hotconfig
+			DefaultConfig = hotconfig
 		}
 		err = w.Run(address)
 		if err != nil {
@@ -75,16 +75,16 @@ func initConsulConfig(address, path, configType string) *viper.Viper {
 		}
 	}()
 
-	return defaultConfig
+	return DefaultConfig
 }
 
 func initFileConfig(path, configType string) *viper.Viper {
-	defaultConfig = viper.New()
-	defaultConfig.SetConfigName("configs")
-	defaultConfig.SetConfigType(configType)
-	defaultConfig.AddConfigPath("./" + path)
+	DefaultConfig = viper.New()
+	DefaultConfig.SetConfigName("configs")
+	DefaultConfig.SetConfigType(configType)
+	DefaultConfig.AddConfigPath("./" + path)
 
-	if err := defaultConfig.ReadInConfig(); err != nil {
+	if err := DefaultConfig.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			panic("config.toml not found")
 		} else {
@@ -96,7 +96,7 @@ func initFileConfig(path, configType string) *viper.Viper {
 	go func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		//设置监听回调函数
-		defaultConfig.OnConfigChange(func(e fsnotify.Event) {
+		DefaultConfig.OnConfigChange(func(e fsnotify.Event) {
 			fmt.Printf("config is change :%s \n", e.String())
 			//if err := viper.Unmarshal(config); err != nil {
 			//	panic(err)
@@ -104,25 +104,25 @@ func initFileConfig(path, configType string) *viper.Viper {
 			cancel()
 		})
 		//开始监听
-		defaultConfig.WatchConfig()
+		DefaultConfig.WatchConfig()
 		//信道不会主动关闭，可以主动调用cancel关闭
 		<-ctx.Done()
 	}()
 
-	return defaultConfig
+	return DefaultConfig
 
 }
 
 func (c Config) GetConfig() *viper.Viper {
-	if defaultConfig == nil {
-		switch c.ConfigType {
+	if DefaultConfig == nil {
+		switch c.configType {
 		case "file":
-			defaultConfig = initFileConfig(c.Path, c.ConfigType)
+			DefaultConfig = initFileConfig(c.path, c.configType)
 			break
 		case "consul":
-			defaultConfig = initConsulConfig(c.Address, c.Path, c.ConfigType)
+			DefaultConfig = initConsulConfig(c.address, c.path, c.configType)
 			break
 		}
 	}
-	return defaultConfig
+	return DefaultConfig
 }
