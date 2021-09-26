@@ -25,6 +25,26 @@ type Config struct {
 	configType string
 }
 
+func (c *Config) SetSource(value string) *Config {
+	c.source = value
+	return c
+}
+
+func (c *Config) SetAddress(value string) *Config {
+	c.address = value
+	return c
+}
+
+func (c *Config) SetPath(value string) *Config {
+	c.path = value
+	return c
+}
+
+func (c *Config) SetType(value string) *Config {
+	c.configType = value
+	return c
+}
+
 var DefaultConfig *viper.Viper
 
 func initConsulConfig(address, path, configType string) *viper.Viper {
