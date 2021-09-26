@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/fsnotify/fsnotify"
 	"log"
+	"strings"
 	"time"
 
 	consulApi "github.com/hashicorp/consul/api"
@@ -135,7 +136,7 @@ func initFileConfig(path, configType string) *viper.Viper {
 
 func (c Config) GetConfig() *viper.Viper {
 	if DefaultConfig == nil {
-		switch c.configType {
+		switch strings.ToLower(c.source) {
 		case "file":
 			DefaultConfig = initFileConfig(c.path, c.configType)
 			break
