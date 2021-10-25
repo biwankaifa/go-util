@@ -138,11 +138,19 @@ func GetConfig(c Config) *viper.Viper {
 	if DefaultConfig == nil {
 		switch strings.ToLower(c.source) {
 		case "file":
+			if c.path == "" || c.configType == "" {
+				return nil
+			}
 			DefaultConfig = initFileConfig(c.path, c.configType)
 			break
 		case "consul":
+			if c.address == "" || c.path == "" || c.configType == "" {
+				return nil
+			}
 			DefaultConfig = initConsulConfig(c.address, c.path, c.configType)
 			break
+		default:
+			return nil
 		}
 	}
 	return DefaultConfig
