@@ -64,7 +64,7 @@ func (m *MysqlConnectPool) Error() error {
 
 // dbConnect
 func dbConnect(c *MysqlConfig) (*gorm.DB, error) {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?serverTimezone=Asia//Shanghai&charset=utf8mb4&parseTime=%t&loc=%s&time_zone=%s",
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=%t&loc=%s&time_zone=%s",
 		c.User,
 		c.Pass,
 		c.Addr,
