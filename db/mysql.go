@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gorm.io/gorm/logger"
 	"log"
+	"net/url"
 	"sync"
 	"time"
 
@@ -63,13 +64,14 @@ func (m *MysqlConnectPool) Error() error {
 
 // dbConnect
 func dbConnect(c *MysqlConfig) (*gorm.DB, error) {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?serverTimezone=Asia//Shanghai&charset=utf8mb4&parseTime=%t&loc=%s",
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?serverTimezone=Asia//Shanghai&charset=utf8mb4&parseTime=%t&loc=%s&time_zone=%s",
 		c.User,
 		c.Pass,
 		c.Addr,
 		c.Name,
 		true,
-		"Local")
+		"Local",
+		url.QueryEscape("'Asia/Shanghai'"))
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
