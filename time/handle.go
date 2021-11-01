@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// DiffForHumans 人性化时间
 func DiffForHumans(time time.Time) string {
 	hTime := carbon.Time2Carbon(time)
 	nTime := carbon.Now(carbon.Local)
@@ -35,5 +36,16 @@ func DiffForHumans(time time.Time) string {
 		return nTime.Format("m-d H:i")
 	} else {
 		return nTime.Format("Y-m-d H:i")
+	}
+}
+
+// DiffForHumansVariety 多样化的时间整理
+func DiffForHumansVariety(Time1 time.Time, String1 string, Time2 time.Time, String2 string) string {
+	carbonTime1 := carbon.Time2Carbon(Time1)
+	carbonTime2 := carbon.Time2Carbon(Time2)
+	if carbonTime2.Gt(carbonTime1) {
+		return String2 + "于: " + DiffForHumans(Time2)
+	} else {
+		return String1 + "于: " + DiffForHumans(Time1)
 	}
 }

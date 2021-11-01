@@ -2,68 +2,47 @@ package db
 
 import (
 	"fmt"
-	"gorm.io/gorm/logger"
-	"log"
-	"net/url"
-	"sync"
-	"time"
-
 	"github.com/pkg/errors"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
+	"net/url"
+	"time"
 )
 
 type MysqlConnectPool struct{}
 
 type MysqlConfig struct {
-	User            string
-	Pass            string
-	Addr            string
-	Name            string
-	MaxOpenConn     int
-	MaxIdleConn     int
-	ConnMaxLifeTime int
+	User            string // 账号
+	Pass            string // 密码
+	Addr            string // 服务器地址及端口
+	Name            string // 表名
+	MaxOpenConn     int    // 同时打开的连接数
+	MaxIdleConn     int    // 链接池中最多保留的空闲链接
+	ConnMaxLifeTime int    // 可重用链接得最大时间长度
+	RunMode         string // 允许模式
 }
-
-var instance *MysqlConnectPool
-var once sync.Once
 
 var db *gorm.DB
-var errDb error
 
-func Get() *MysqlConnectPool {
-	once.Do(func() {
-		instance = &MysqlConnectPool{}
-	})
-	return instance
-}
-
-//InitDataPool 初始化数据库连接(可在mail()适当位置调用)
-func (m *MysqlConnectPool) InitDataPool(c *MysqlConfig) bool {
-
-	db, errDb = dbConnect(c)
-	if errDb != nil {
-		log.Fatal(errDb)
-		return false
-	}
-	//关闭数据库，db会被多个goroutine共享，可以不调用
-	// defer db.Close()
-	return true
-}
-
-// Db 对外获取数据库连接对象db
-func (m *MysqlConnectPool) Db() *gorm.DB {
+// Db 获取对象
+func Db() *gorm.DB {
 	return db
 }
 
-// Error 对外获取数据库连接对象db
-func (m *MysqlConnectPool) Error() error {
-	return errDb
+// InitMysql 初始化数据库连接
+func (c *MysqlConfig) InitMysql() error {
+	var err error
+	db, err = c.dbConnect()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // dbConnect
-func dbConnect(c *MysqlConfig) (*gorm.DB, error) {
+func (c *MysqlConfig) dbConnect() (*gorm.DB, error) {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=%t&loc=%s&time_zone=%s",
 		c.User,
 		c.Pass,
@@ -71,13 +50,21 @@ func dbConnect(c *MysqlConfig) (*gorm.DB, error) {
 		c.Name,
 		true,
 		"Local",
-		url.QueryEscape("'Asia/Shanghai'"))
+		url.QueryEscape("'Asia/Shanghai'"),
+	)
+
+	var loggerConfig logger.Interface
+	if c.RunMode == "debug" {
+		loggerConfig = logger.Default.LogMode(logger.Info)
+	} else {
+		loggerConfig = logger.Default.LogMode(logger.Error)
+	}
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
 			SingularTable: true,
 		},
-		Logger: logger.Default.LogMode(logger.Info), // 日志配置
+		Logger: loggerConfig, // 日志配置
 	})
 
 	if err != nil {

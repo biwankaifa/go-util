@@ -7,7 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var databaseOfMongo *mongo.Database
+var db *mongo.Database
 
 type ConfigOfMongo struct {
 	Host     string
@@ -15,25 +15,32 @@ type ConfigOfMongo struct {
 	Name     string
 	Pass     string
 	DataBase string
+	Str      string
 }
 
-func InitMongo(cfg *ConfigOfMongo) error {
-	if databaseOfMongo != nil {
+// Db 获取对象
+func Db() *mongo.Database {
+	return db
+}
+
+// InitMongo 初始化数据库连接
+func (cfg *ConfigOfMongo) InitMongo() error {
+	if db != nil {
 		return nil
 	}
 	var param string
-	param = fmt.Sprintf("mongodb://%s:%s@%s:%d", cfg.Name, cfg.Pass, cfg.Host, cfg.Port)
+	if cfg.Str == "" {
+		param = cfg.Str
+	} else {
+		param = fmt.Sprintf("mongodb://%s:%s@%s:%d", cfg.Name, cfg.Pass, cfg.Host, cfg.Port)
+	}
 	clientOptions := options.Client().ApplyURI(param)
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
 		return err
 	}
 
-	databaseOfMongo = client.Database(cfg.DataBase)
+	db = client.Database(cfg.DataBase)
 
 	return nil
-}
-
-func GetMongoDatabase() *mongo.Database {
-	return databaseOfMongo
 }

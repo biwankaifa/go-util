@@ -1,6 +1,9 @@
 package validator
 
 type Exception struct {
-	Msg  string
-	Code int
+	Msg     string
+	ErrMsg  string
+	ErrCode int
 }
+
+var ErrValidate = 400000

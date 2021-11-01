@@ -13,10 +13,10 @@ import (
 
 // KeepTTL is an option for Set command to keep key's existing TTL.
 // For example:
-//
 //    rdb.Set(ctx, key, value, redis.KeepTTL)
 const KeepTTL = redis.KeepTTL
 
+// Nil reply returned by Redis when key does not exist.
 const Nil = redis.Nil
 
 type ConfigOfRedis struct {
@@ -30,7 +30,7 @@ var client map[int]*redis.Client
 var mu sync.Mutex
 var cfg *ConfigOfRedis
 
-func InitRedis(c *ConfigOfRedis) {
+func (c *ConfigOfRedis) InitRedis() {
 	client = make(map[int]*redis.Client)
 	cfg = c
 }

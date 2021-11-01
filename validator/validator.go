@@ -3,8 +3,9 @@ package validator
 import (
 	"context"
 	"errors"
-	"github.com/biwankaifa/go-util/response"
-	enLanguage "github.com/go-playground/locales/en"
+	"github.com/go-playground/locales/en"
+	"github.com/go-playground/locales/zh"
+	"github.com/go-playground/locales/zh_Hant_TW"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	enTranslations "github.com/go-playground/validator/v10/translations/en"
@@ -19,8 +20,7 @@ var (
 
 func init() {
 	validate = validator.New()
-	en := enLanguage.New()
-	uni = ut.New(en)
+	uni = ut.New(en.New(), zh.New(), zh_Hant_TW.New())
 	trans, _ := uni.GetTranslator("en")
 	validate = validator.New()
 	//注册一个函数，获取struct tag里自定义的label作为字段名
@@ -35,8 +35,9 @@ func init() {
 func VarPanic(v interface{}, tag string) {
 	if err := Var(v, tag); err != nil {
 		panic(Exception{
-			Msg:  err.Error(),
-			Code: response.ErrValidate,
+			Msg:     err.Error(),
+			ErrMsg:  "",
+			ErrCode: ErrValidate,
 		})
 	}
 }
@@ -44,8 +45,9 @@ func VarPanic(v interface{}, tag string) {
 func StructPartialPanic(v interface{}, fields ...string) {
 	if err := StructPartial(v, fields...); err != nil {
 		panic(Exception{
-			Msg:  err.Error(),
-			Code: response.ErrValidate,
+			Msg:     err.Error(),
+			ErrMsg:  "",
+			ErrCode: ErrValidate,
 		})
 	}
 }
@@ -53,8 +55,9 @@ func StructPartialPanic(v interface{}, fields ...string) {
 func StructPanic(v interface{}) {
 	if err := Struct(v); err != nil {
 		panic(Exception{
-			Msg:  err.Error(),
-			Code: response.ErrValidate,
+			Msg:     err.Error(),
+			ErrMsg:  "",
+			ErrCode: ErrValidate,
 		})
 	}
 }
