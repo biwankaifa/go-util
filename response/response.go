@@ -71,11 +71,9 @@ func Error(c *gin.Context, err error) {
 	// 判断error是不是一个json
 	if json.Valid([]byte(err.Error())) {
 		m, _ := jsonStringToMap(err.Error())
-		if mapExist(m, "identifier") == "biwan" {
-			ErrMsg = mapExist(m, "err_msg")
-			ErrCode, _ = strconv.Atoi(mapExist(m, "err_code"))
-			Msg = mapExist(m, "msg")
-		}
+		ErrMsg = mapExist(m, "err_msg")
+		ErrCode, _ = strconv.Atoi(mapExist(m, "err_code"))
+		Msg = mapExist(m, "msg")
 	}
 
 	r := Response{
