@@ -6,6 +6,9 @@ type Service interface {
 	error
 	Return() error
 	Set(...Option) Service
+	GetErrCode() int
+	GetErrMsg() string
+	GetMsg() string
 }
 
 type Options struct {
