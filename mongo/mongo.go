@@ -30,9 +30,9 @@ func (cfg *ConfigOfMongo) InitMongo() error {
 	}
 	var param string
 	if cfg.Str == "" {
-		param = cfg.Str
-	} else {
 		param = fmt.Sprintf("mongodb://%s:%s@%s:%d", cfg.Name, cfg.Pass, cfg.Host, cfg.Port)
+	} else {
+		param = cfg.Str
 	}
 	clientOptions := options.Client().ApplyURI(param)
 	client, err := mongo.Connect(context.TODO(), clientOptions)
