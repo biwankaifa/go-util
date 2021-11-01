@@ -74,3 +74,18 @@ func (o Options) Error() string {
 	s, _ := json.Marshal(o)
 	return string(s)
 }
+
+// GetErrCode 获取errCode
+func (o Options) GetErrCode() int {
+	return o.ErrCode
+}
+
+// GetErrMsg 获取errMsg
+func (o Options) GetErrMsg() string {
+	return o.ErrMsg
+}
+
+// GetMsg 获取msg
+func (o Options) GetMsg() string {
+	return o.Msg
+}
