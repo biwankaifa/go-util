@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"fmt"
 	"github.com/pkg/errors"
 	"gorm.io/driver/mysql"
@@ -41,8 +42,8 @@ func (*MysqlConnectPool) Db() *gorm.DB {
 }
 
 // Db 获取对象
-func Db() *gorm.DB {
-	return db
+func Db(c context.Context) *gorm.DB {
+	return db.WithContext(c)
 }
 
 // InitMysql 初始化数据库连接
