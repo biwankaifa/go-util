@@ -29,9 +29,15 @@ var db *gorm.DB
 var instance *MysqlConnectPool
 
 // Get 获取对象
-// Deprecated: 已废弃请使用 Db() 方法
+// Deprecated: 已废弃请直接使用 Db() 方法
 func Get() *MysqlConnectPool {
 	return instance
+}
+
+// Db 获取对象
+// Deprecated: 已废弃请直接使用 Db() 方法
+func (*MysqlConnectPool) Db() *gorm.DB {
+	return db
 }
 
 // Db 获取对象
