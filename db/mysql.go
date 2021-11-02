@@ -102,7 +102,7 @@ func (c *MysqlConfig) dbConnect() (*gorm.DB, error) {
 	sqlDB.SetConnMaxLifetime(time.Minute * time.Duration(c.ConnMaxLifeTime))
 
 	// 使用插件
-	//db.Use(&TracePlugin{})
+	_ = db.Use(&OpentracingPlugin{})
 
 	return db, nil
 }
