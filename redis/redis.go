@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"github.com/go-redis/redis/v8"
 	"github.com/golang-module/carbon"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+
+	tracinglog "github.com/opentracing/opentracing-go/log"
 	"runtime"
 	"strconv"
 	"sync"
@@ -76,11 +80,32 @@ var processStartTime time.Time
 
 func (c ClientHook) BeforeProcess(ctx context.Context, cmd redis.Cmder) (context.Context, error) {
 	processStartTime = time.Now()
+
+	if opentracing.IsGlobalTracerRegistered() {
+		_, ctx = opentracing.StartSpanFromContext(ctx, "redis")
+	}
+
 	return ctx, nil
 }
 
 func (c ClientHook) AfterProcess(ctx context.Context, cmd redis.Cmder) error {
 	_, file, line, _ := runtime.Caller(4)
+
+	span := opentracing.SpanFromContext(ctx)
+
+	if span != nil {
+
+		defer span.Finish()
+		ext.Component.Set(span, "redis")
+		span.LogFields(tracinglog.Object("statement", fmt.Sprintf("%v", cmd.Args())))
+		span.LogFields(tracinglog.Object("file", fmt.Sprintf("%s:%s", file, strconv.FormatInt(int64(line), 10))))
+		if err := cmd.Err(); err != nil {
+			ext.Error.Set(span, true)
+			span.LogFields(tracinglog.Object("err", err))
+			return err
+		}
+		span.SetTag("db.res", "ok")
+	}
 	elapsed := time.Since(processStartTime)
 	fmt.Printf("\n%s %s\n\u001B[34m[Redis]\u001B[0m \u001B[33m[%.3fms]\u001B[0m %v\n", carbon.Now().ToDateTimeString(), file+":"+strconv.FormatInt(int64(line), 10), float64(elapsed.Nanoseconds())/1e6, cmd.String())
 	return nil
@@ -90,6 +115,11 @@ var processPipelineStartTime time.Time
 
 func (c ClientHook) BeforeProcessPipeline(ctx context.Context, cmds []redis.Cmder) (context.Context, error) {
 	processPipelineStartTime = time.Now()
+
+	if opentracing.IsGlobalTracerRegistered() {
+		_, ctx = opentracing.StartSpanFromContext(ctx, "redis")
+	}
+
 	return ctx, nil
 }
 
@@ -99,6 +129,17 @@ func (c ClientHook) AfterProcessPipeline(ctx context.Context, cmds []redis.Cmder
 		s = append(s, cmd.String())
 	}
 	_, file, line, _ := runtime.Caller(5)
+
+	span := opentracing.SpanFromContext(ctx)
+
+	if span != nil {
+		defer span.Finish()
+		ext.Component.Set(span, "redis")
+		span.LogFields(tracinglog.Object("statement", fmt.Sprintf("%v", s)))
+		span.LogFields(tracinglog.Object("file", fmt.Sprintf("%s:%s", file, strconv.FormatInt(int64(line), 10))))
+		span.SetTag("db.res", "ok")
+	}
+
 	elapsed := time.Since(processPipelineStartTime)
 	fmt.Printf("\n%s %s\n\u001B[34m[Redis]\u001B[0m \u001B[33m[%.3fms]\u001B[0m %v\n", carbon.Now().ToDateTimeString(), file+":"+strconv.FormatInt(int64(line), 10), float64(elapsed.Nanoseconds())/1e6, s)
 	return nil

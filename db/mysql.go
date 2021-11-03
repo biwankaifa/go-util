@@ -42,8 +42,14 @@ func (*MysqlConnectPool) Db() *gorm.DB {
 }
 
 // Db 获取对象
-func Db(c context.Context) *gorm.DB {
-	return db.WithContext(c)
+func Db() *gorm.DB {
+	return db
+}
+
+// Dbc 获取对象
+func Dbc(c context.Context) *gorm.DB {
+	session := db.WithContext(c)
+	return session
 }
 
 // InitMysql 初始化数据库连接
