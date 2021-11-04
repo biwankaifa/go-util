@@ -98,7 +98,7 @@ func (c ClientHook) AfterProcess(ctx context.Context, cmd redis.Cmder) error {
 
 		defer span.Finish()
 		ext.Component.Set(span, "redis")
-		span.LogFields(tracinglog.Object("statement", fmt.Sprintf("%v", cmd.Args())))
+		span.LogFields(tracinglog.Object("statement", fmt.Sprintf("%v", cmd.String())))
 		span.LogFields(tracinglog.Object("file", fmt.Sprintf("%s:%s", file, strconv.FormatInt(int64(line), 10))))
 		if err := cmd.Err(); err != nil && errors.Is(err, Nil) {
 			ext.Error.Set(span, true)
