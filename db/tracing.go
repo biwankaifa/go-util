@@ -5,6 +5,7 @@ import (
 	"github.com/opentracing/opentracing-go/ext"
 	tracerLog "github.com/opentracing/opentracing-go/log"
 	"gorm.io/gorm"
+	"gorm.io/gorm/utils"
 )
 
 const (
@@ -40,8 +41,8 @@ func after(db *gorm.DB) {
 		ext.Error.Set(span, true)
 		span.LogFields(tracerLog.Object("err", db.Error))
 	}
-
 	// sql
+	span.LogFields(tracerLog.String("file", utils.FileWithLineNum()))
 	span.LogFields(tracerLog.String("sql", db.Dialector.Explain(db.Statement.SQL.String(), db.Statement.Vars...)))
 	return
 }
