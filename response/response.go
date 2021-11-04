@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	tracinglog "github.com/opentracing/opentracing-go/log"
 	"log"
 	"net/http"
 	"strconv"
@@ -54,6 +57,9 @@ func Success(c *gin.Context, data interface{}) {
 		StatusCode: http.StatusOK,
 	}
 
+	span := opentracing.SpanFromContext(c.Request.Context())
+	defer span.Finish()
+
 	r.Json()
 
 	log.Printf("Route, path: %s, Data: %v", c.Request.URL, r.Data)
@@ -84,6 +90,16 @@ func Error(c *gin.Context, err error) {
 		Data:       nil,
 		StatusCode: http.StatusOK,
 	}
+
+	span := opentracing.SpanFromContext(c.Request.Context())
+	defer span.Finish()
+
+	ext.Error.Set(span, true)
+	span.LogFields(tracinglog.Object("err", map[string]interface{}{
+		"err_code": ErrCode,
+		"err_msg":  ErrMsg,
+		"msg":      Msg,
+	}))
 
 	r.Json()
 }
