@@ -59,7 +59,7 @@ func Success(c *gin.Context, data interface{}) {
 
 	span := opentracing.SpanFromContext(c.Request.Context())
 
-	span.LogFields(tracinglog.Object("err", map[string]interface{}{
+	span.LogFields(tracinglog.Object("return", map[string]interface{}{
 		"data": data,
 	}))
 
@@ -97,7 +97,7 @@ func Error(c *gin.Context, err error) {
 	span := opentracing.SpanFromContext(c.Request.Context())
 
 	ext.Error.Set(span, true)
-	span.LogFields(tracinglog.Object("err", map[string]interface{}{
+	span.LogFields(tracinglog.Object("return", map[string]interface{}{
 		"err_code": ErrCode,
 		"err_msg":  ErrMsg,
 		"msg":      Msg,
