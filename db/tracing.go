@@ -2,6 +2,7 @@ package db
 
 import (
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 	tracerLog "github.com/opentracing/opentracing-go/log"
 	"gorm.io/gorm"
 )
@@ -36,7 +37,8 @@ func after(db *gorm.DB) {
 
 	// Error
 	if db.Error != nil {
-		span.LogFields(tracerLog.Error(db.Error))
+		ext.Error.Set(span, true)
+		span.LogFields(tracerLog.Object("err", db.Error))
 	}
 
 	// sql

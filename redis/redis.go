@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/go-redis/redis/v8"
 	"github.com/golang-module/carbon"
@@ -93,18 +94,17 @@ func (c ClientHook) AfterProcess(ctx context.Context, cmd redis.Cmder) error {
 
 	span := opentracing.SpanFromContext(ctx)
 
-	if span != nil {
+	if span != nil && cmd.Name() != "ping" {
 
 		defer span.Finish()
 		ext.Component.Set(span, "redis")
 		span.LogFields(tracinglog.Object("statement", fmt.Sprintf("%v", cmd.Args())))
 		span.LogFields(tracinglog.Object("file", fmt.Sprintf("%s:%s", file, strconv.FormatInt(int64(line), 10))))
-		if err := cmd.Err(); err != nil {
+		if err := cmd.Err(); err != nil && errors.Is(err, Nil) {
 			ext.Error.Set(span, true)
 			span.LogFields(tracinglog.Object("err", err))
 			return err
 		}
-		span.SetTag("db.res", "ok")
 	}
 	elapsed := time.Since(processStartTime)
 	fmt.Printf("\n%s %s\n\u001B[34m[Redis]\u001B[0m \u001B[33m[%.3fms]\u001B[0m %v\n", carbon.Now().ToDateTimeString(), file+":"+strconv.FormatInt(int64(line), 10), float64(elapsed.Nanoseconds())/1e6, cmd.String())
@@ -125,8 +125,13 @@ func (c ClientHook) BeforeProcessPipeline(ctx context.Context, cmds []redis.Cmde
 
 func (c ClientHook) AfterProcessPipeline(ctx context.Context, cmds []redis.Cmder) error {
 	var s []interface{}
+	errs := make([]error, 0)
 	for _, cmd := range cmds {
 		s = append(s, cmd.String())
+		if cmd.Err() != nil && !errors.Is(cmd.Err(), Nil) {
+			errs = append(errs, cmd.Err())
+		}
+
 	}
 	_, file, line, _ := runtime.Caller(5)
 
@@ -137,7 +142,11 @@ func (c ClientHook) AfterProcessPipeline(ctx context.Context, cmds []redis.Cmder
 		ext.Component.Set(span, "redis")
 		span.LogFields(tracinglog.Object("statement", fmt.Sprintf("%v", s)))
 		span.LogFields(tracinglog.Object("file", fmt.Sprintf("%s:%s", file, strconv.FormatInt(int64(line), 10))))
-		span.SetTag("db.res", "ok")
+
+		if len(errs) > 0 {
+			ext.Error.Set(span, true)
+			span.LogFields(tracinglog.Object("err:", errs))
+		}
 	}
 
 	elapsed := time.Since(processPipelineStartTime)
