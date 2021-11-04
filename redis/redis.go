@@ -77,15 +77,12 @@ func Get(i ...int) *redis.Client {
 
 type ClientHook struct{}
 
-var processStartTime time.Time
-
 func (c ClientHook) BeforeProcess(ctx context.Context, cmd redis.Cmder) (context.Context, error) {
-	processStartTime = time.Now()
+	ctx = context.WithValue(ctx, "processStartTime", time.Now())
 
 	if opentracing.IsGlobalTracerRegistered() {
 		_, ctx = opentracing.StartSpanFromContext(ctx, "redis")
 	}
-
 	return ctx, nil
 }
 
@@ -100,21 +97,21 @@ func (c ClientHook) AfterProcess(ctx context.Context, cmd redis.Cmder) error {
 		ext.Component.Set(span, "redis")
 		span.LogFields(tracinglog.Object("statement", fmt.Sprintf("%v", cmd.String())))
 		span.LogFields(tracinglog.Object("file", fmt.Sprintf("%s:%s", file, strconv.FormatInt(int64(line), 10))))
-		if err := cmd.Err(); err != nil && errors.Is(err, Nil) {
+		if err := cmd.Err(); err != nil && !errors.Is(err, Nil) {
 			ext.Error.Set(span, true)
 			span.LogFields(tracinglog.Object("err", err))
 			return err
 		}
 	}
+
+	processStartTime := ctx.Value("processStartTime").(time.Time)
 	elapsed := time.Since(processStartTime)
 	fmt.Printf("\n%s %s\n\u001B[34m[Redis]\u001B[0m \u001B[33m[%.3fms]\u001B[0m %v\n", carbon.Now().ToDateTimeString(), file+":"+strconv.FormatInt(int64(line), 10), float64(elapsed.Nanoseconds())/1e6, cmd.String())
 	return nil
 }
 
-var processPipelineStartTime time.Time
-
 func (c ClientHook) BeforeProcessPipeline(ctx context.Context, cmds []redis.Cmder) (context.Context, error) {
-	processPipelineStartTime = time.Now()
+	ctx = context.WithValue(ctx, "processPipelineStartTime", time.Now())
 
 	if opentracing.IsGlobalTracerRegistered() {
 		_, ctx = opentracing.StartSpanFromContext(ctx, "redis")
@@ -149,6 +146,7 @@ func (c ClientHook) AfterProcessPipeline(ctx context.Context, cmds []redis.Cmder
 		}
 	}
 
+	processPipelineStartTime := ctx.Value("processPipelineStartTime").(time.Time)
 	elapsed := time.Since(processPipelineStartTime)
 	fmt.Printf("\n%s %s\n\u001B[34m[Redis]\u001B[0m \u001B[33m[%.3fms]\u001B[0m %v\n", carbon.Now().ToDateTimeString(), file+":"+strconv.FormatInt(int64(line), 10), float64(elapsed.Nanoseconds())/1e6, s)
 	return nil

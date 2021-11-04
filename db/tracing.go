@@ -16,7 +16,7 @@ const (
 
 func before(db *gorm.DB) {
 	// 先从父级spans生成子span
-	span, _ := opentracing.StartSpanFromContext(db.Statement.Context, "gorm")
+	span, _ := opentracing.StartSpanFromContext(db.Statement.Context, "mysql")
 	// 利用db实例去传递span
 	db.InstanceSet(gormSpanKey, span)
 	return
