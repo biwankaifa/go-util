@@ -57,8 +57,7 @@ func Success(c *gin.Context, data interface{}) {
 		StatusCode: http.StatusOK,
 	}
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "Response")
-	defer span.Finish()
+	span := opentracing.SpanFromContext(c.Request.Context())
 
 	span.LogFields(tracinglog.Object("err", map[string]interface{}{
 		"data": data,
@@ -95,8 +94,7 @@ func Error(c *gin.Context, err error) {
 		StatusCode: http.StatusOK,
 	}
 
-	span, _ := opentracing.StartSpanFromContext(c.Request.Context(), "Response")
-	defer span.Finish()
+	span := opentracing.SpanFromContext(c.Request.Context())
 
 	ext.Error.Set(span, true)
 	span.LogFields(tracinglog.Object("err", map[string]interface{}{
