@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	tracinglog "github.com/opentracing/opentracing-go/log"
 	"log"
 	"net/http"
 	"strconv"
@@ -54,11 +57,13 @@ func Success(c *gin.Context, data interface{}) {
 		StatusCode: http.StatusOK,
 	}
 
-	//span := opentracing.SpanFromContext(c.Request.Context())
-	//
-	//span.LogFields(tracinglog.Object("return", map[string]interface{}{
-	//	"data": data,
-	//}))
+	if opentracing.IsGlobalTracerRegistered() {
+		span := opentracing.SpanFromContext(c.Request.Context())
+
+		span.LogFields(tracinglog.Object("return", map[string]interface{}{
+			"data": data,
+		}))
+	}
 
 	r.Json()
 
@@ -66,7 +71,7 @@ func Success(c *gin.Context, data interface{}) {
 }
 
 // Error 错误返回
-func Error(c *gin.Context, err error) {
+func Error(c *gin.Context, err error, parameter ...interface{}) {
 
 	var (
 		ErrMsg  = err.Error()
@@ -82,23 +87,30 @@ func Error(c *gin.Context, err error) {
 		Msg = mapExist(m, "msg")
 	}
 
+	var data interface{} = nil
+	if parameter[0] != nil {
+		data = parameter[0]
+	}
+
 	r := Response{
 		c:          c,
 		ErrMsg:     ErrMsg,
 		ErrCode:    ErrCode,
 		Msg:        Msg,
-		Data:       nil,
+		Data:       data,
 		StatusCode: http.StatusOK,
 	}
 
-	//span := opentracing.SpanFromContext(c.Request.Context())
-	//
-	//ext.Error.Set(span, true)
-	//span.LogFields(tracinglog.Object("return", map[string]interface{}{
-	//	"err_code": ErrCode,
-	//	"err_msg":  ErrMsg,
-	//	"msg":      Msg,
-	//}))
+	if opentracing.IsGlobalTracerRegistered() {
+		span := opentracing.SpanFromContext(c.Request.Context())
+
+		ext.Error.Set(span, true)
+		span.LogFields(tracinglog.Object("return", map[string]interface{}{
+			"err_code": ErrCode,
+			"err_msg":  ErrMsg,
+			"msg":      Msg,
+		}))
+	}
 
 	r.Json()
 }
