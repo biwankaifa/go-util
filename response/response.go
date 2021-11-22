@@ -88,7 +88,7 @@ func Error(c *gin.Context, err error, parameter ...interface{}) {
 	}
 
 	var data interface{} = nil
-	if parameter[0] != nil {
+	if len(parameter) > 0 && parameter[0] != nil {
 		data = parameter[0]
 	}
 
