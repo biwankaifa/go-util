@@ -28,6 +28,7 @@ type ConfigOfRedis struct {
 	Database int
 	Address  string
 	Password string
+	RunMode  string // 允许模式
 }
 
 // client Redis单例模式
@@ -68,14 +69,18 @@ func Get(i ...int) *redis.Client {
 				PoolSize:     10,
 				MinIdleConns: 5,
 			})
-			client[db].AddHook(&ClientHook{})
+			client[db].AddHook(&ClientHook{
+				RunMode: cfg.RunMode,
+			})
 		}
 	}
 
 	return client[db]
 }
 
-type ClientHook struct{}
+type ClientHook struct {
+	RunMode string
+}
 
 func (c ClientHook) BeforeProcess(ctx context.Context, cmd redis.Cmder) (context.Context, error) {
 	ctx = context.WithValue(ctx, "processStartTime", time.Now())
@@ -92,7 +97,6 @@ func (c ClientHook) AfterProcess(ctx context.Context, cmd redis.Cmder) error {
 	span := opentracing.SpanFromContext(ctx)
 
 	if span != nil && cmd.Name() != "ping" {
-
 		defer span.Finish()
 		ext.Component.Set(span, "redis")
 		span.LogFields(tracinglog.Object("statement", fmt.Sprintf("%v", cmd.String())))
@@ -104,9 +108,11 @@ func (c ClientHook) AfterProcess(ctx context.Context, cmd redis.Cmder) error {
 		}
 	}
 
-	processStartTime := ctx.Value("processStartTime").(time.Time)
-	elapsed := time.Since(processStartTime)
-	fmt.Printf("\n%s %s\n\u001B[34m[Redis]\u001B[0m \u001B[33m[%.3fms]\u001B[0m %v\n", carbon.Now().ToDateTimeString(), file+":"+strconv.FormatInt(int64(line), 10), float64(elapsed.Nanoseconds())/1e6, cmd.String())
+	if c.RunMode == "debug" {
+		processStartTime := ctx.Value("processStartTime").(time.Time)
+		elapsed := time.Since(processStartTime)
+		fmt.Printf("\n%s %s\n\u001B[34m[Redis]\u001B[0m \u001B[33m[%.3fms]\u001B[0m %v\n", carbon.Now().ToDateTimeString(), file+":"+strconv.FormatInt(int64(line), 10), float64(elapsed.Nanoseconds())/1e6, cmd.String())
+	}
 	return nil
 }
 
@@ -146,8 +152,10 @@ func (c ClientHook) AfterProcessPipeline(ctx context.Context, cmds []redis.Cmder
 		}
 	}
 
-	processPipelineStartTime := ctx.Value("processPipelineStartTime").(time.Time)
-	elapsed := time.Since(processPipelineStartTime)
-	fmt.Printf("\n%s %s\n\u001B[34m[Redis]\u001B[0m \u001B[33m[%.3fms]\u001B[0m %v\n", carbon.Now().ToDateTimeString(), file+":"+strconv.FormatInt(int64(line), 10), float64(elapsed.Nanoseconds())/1e6, s)
+	if c.RunMode == "debug" {
+		processPipelineStartTime := ctx.Value("processPipelineStartTime").(time.Time)
+		elapsed := time.Since(processPipelineStartTime)
+		fmt.Printf("\n%s %s\n\u001B[34m[Redis]\u001B[0m \u001B[33m[%.3fms]\u001B[0m %v\n", carbon.Now().ToDateTimeString(), file+":"+strconv.FormatInt(int64(line), 10), float64(elapsed.Nanoseconds())/1e6, s)
+	}
 	return nil
 }
